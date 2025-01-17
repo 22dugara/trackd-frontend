@@ -16,7 +16,7 @@ const HomeScreen = () => {
                 <TopNavBar />
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold' }}>
-                        Welcome, {username}!
+                        Review
                     </Text>
                 </View>
                 <BottomNavBar />

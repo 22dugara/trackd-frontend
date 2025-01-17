@@ -22,4 +22,32 @@ api.interceptors.request.use(
     }
 );
 
+/**
+ * Fetch user profile data for the authenticated user.
+ */
+export const fetchUserProfile = async () => {
+    try {
+        const response = await api.get('/profiles/me/'); // Fetch profile using the /profiles/me/ endpoint
+        console.log(response.data);
+        return response.data; // Return the profile data
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        throw error; // Propagate the error for the calling function to handle
+    }
+};
+
+/**
+ * Fetch recent searches for the user
+ */
+export const fetchRecentSearches = async () => {
+    try {
+        const response = await api.get('/profiles/recent_searches/');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching recent searches:', error);
+        // Return empty array if the request fails
+        return [];
+    }
+};
+
 export default api;
