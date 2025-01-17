@@ -7,6 +7,7 @@ import ProfileScreen from '../screens/Profile';
 import ReviewScreen from '../screens/Review';
 import YourListsScreen from '../screens/YourLists';
 import DiscoverScreen from '../screens/Discover';
+import SignUpScreen from '../screens/SignUpScreen';
 
 const Stack = createStackNavigator();
 
@@ -20,6 +21,7 @@ const AppNavigator = () => {
                 <Stack.Screen name="Review" component={ReviewScreen} options={{ title: 'Review' }} />
                 <Stack.Screen name="YourLists" component={YourListsScreen} options={{ title: 'YourLists' }} />
                 <Stack.Screen name="Discover" component={DiscoverScreen} options={{ title: 'Discover' }} />
+                <Stack.Screen name="SignUp" component={SignUpScreen} options={{ title: 'Sign Up' }} />
             </Stack.Navigator>
         </NavigationContainer>
     );
