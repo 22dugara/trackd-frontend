@@ -25,7 +25,7 @@ const DiscoverScreen = () => {
                 <View style={{ flex: 1, width: '100%' }}>
                     {/* Search Bar with top margin */}
                     <View style={{ marginTop: 20 }}>
-                        <SearchBar onSearch={handleSearch} />
+                        <SearchBar />
                     </View>
                 </View>
 

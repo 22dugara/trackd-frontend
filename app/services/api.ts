@@ -1,12 +1,12 @@
 import axios from 'axios';
 import { getItem } from './storage';
 
-const production = true; // Toggle this for production/development
+const production = false; // Toggle this for production/development
 
 const api = axios.create({
     baseURL: production 
         ? 'https://trackd-backend-api-30cc0e199157.herokuapp.com/api'  // Production URL
-        : 'http://192.168.1.209:8000/api', // Development URL
+        : 'http://10.0.0.170:8000/api', // Development URL
 });
 
 // Define endpoints that don't need authentication
@@ -119,6 +119,81 @@ export const registerUser = async (userData: RegisterData): Promise<RegisterResp
         return response.data;
     } catch (error: any) {
         console.error('Registration error:', error.response?.data || error.message);
+        throw error;
+    }
+};
+
+export interface SearchItem {
+  id: string;
+  title: string;
+  image: string;
+  type: 'Album' | 'Track' | 'Artist' | 'Profile';
+}
+
+interface SearchResponse {
+  query: string;
+  profiles: any[];
+  albums: any[];
+  artists: any[];
+  tracks: any[];
+}
+
+interface SearchResults {
+  profiles: SearchItem[];
+  albums: SearchItem[];
+  artists: SearchItem[];
+  tracks: SearchItem[];
+}
+
+/**
+ * Search for profiles, albums, artists, and tracks
+ * @param query Search query string
+ * @returns Promise with search results for all categories
+ */
+export const search = async (query: string): Promise<SearchResults> => {
+    try {
+        console.log('Making search request for:', query);
+        const response = await api.get('/search/', {
+            params: { q: query }
+        });
+        
+        const data: SearchResponse = response.data;
+        
+        return {
+            profiles: data.profiles?.map(profile => ({
+                id: profile.id.toString(),
+                title: `${profile.first_name} ${profile.last_name}`,
+                image: profile.display_picture,
+                type: 'Profile'
+            })) || [],
+
+            albums: data.albums?.map(album => ({
+                id: album.id,
+                title: album.name,
+                image: album.images[0]?.url || '',
+                type: 'Album'
+            })) || [],
+
+            artists: data.artists?.map(artist => ({
+                id: artist.id,
+                title: artist.name,
+                image: artist.images[0]?.url || '',
+                type: 'Artist'
+            })) || [],
+
+            tracks: data.tracks?.map(track => ({
+                id: track.id,
+                title: track.name,
+                image: track.album.images[0]?.url || '',
+                type: 'Track'
+            })) || []
+        };
+    } catch (error: any) {
+        console.error('Search request failed:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status
+        });
         throw error;
     }
 };

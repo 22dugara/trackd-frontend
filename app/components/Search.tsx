@@ -14,28 +14,34 @@ import {
     KeyboardEvent,
 } from 'react-native';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
-import { fetchRecentSearches } from '../services/api';
+import { fetchRecentSearches, search, SearchItem } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
-interface RecentSearch {
-    id: number;
-    title: string;
-    image: string;
-    description: string;
-    type: string;
-    searched_at: string;
-}
-
 interface SearchBarProps {
-    onSearch: (query: string) => void;
+    // removed onSearch prop
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
+type SearchCategory = 'albums' | 'artists' | 'profiles' | 'tracks';
+
+const SearchBar: React.FC<SearchBarProps> = () => {  // removed onSearch from props
     const [searchText, setSearchText] = useState<string>('');
     const [isExpanded, setIsExpanded] = useState<boolean>(false);
     const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
-    const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
+    const [recentSearches, setRecentSearches] = useState<SearchItem[]>([]);
+    const [searchResults, setSearchResults] = useState<{
+        profiles: SearchItem[];
+        albums: SearchItem[];
+        artists: SearchItem[];
+        tracks: SearchItem[];
+    }>({
+        profiles: [],
+        albums: [],
+        artists: [],
+        tracks: []
+    });
+    const [showResults, setShowResults] = useState<boolean>(false);
+    const [activeCategory, setActiveCategory] = useState<SearchCategory>('albums');
 
     useEffect(() => {
         const keyboardWillShow = Keyboard.addListener(
@@ -81,29 +87,51 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
         Keyboard.dismiss();
     };
 
-    const handleSearch = () => {
-        if (onSearch) {
-            onSearch(searchText);
+    const onSearch = async (query: string) => {
+        try {
+            console.log('Starting search for query:', query);
+            const results = await search(query);
+            setSearchResults(results);
+            setShowResults(true);
+            console.log('Search results:', results.tracks);
+        } catch (error: any) {
+            console.error('Search failed with error:', {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status,
+                stack: error.stack
+            });
         }
+    };
+
+    const handleSearch = () => {
+        onSearch(searchText);
         Keyboard.dismiss();
     };
 
-    const renderSearchItem = ({ item }: { item: RecentSearch }) => (
-        <TouchableOpacity style={styles.recentSearchItem}>
-            <Image 
-                source={{ 
-                    uri: item.image.startsWith('http') 
-                        ? item.image 
-                        : `http://192.168.1.209:8000${item.image}`
-                }} 
-                style={styles.searchItemImage} 
-            />
-            <View style={styles.searchItemContent}>
-                <Text style={styles.searchItemTitle}>{item.title}</Text>
-                <Text style={styles.searchItemType}>{item.type}</Text>
-            </View>
-        </TouchableOpacity>
-    );
+    const handleClearSearch = () => {
+        setSearchText('');
+        setShowResults(false);
+    };
+
+    const renderSearchItem = ({ item }: { item: SearchItem }) => {
+        return (
+            <TouchableOpacity style={styles.recentSearchItem}>
+                <Image 
+                    source={{ 
+                        uri: item.image.startsWith('http') 
+                            ? item.image 
+                            : `http://192.168.1.209:8000${item.image}`
+                    }} 
+                    style={styles.searchItemImage} 
+                />
+                <View style={styles.searchItemContent}>
+                    <Text style={styles.searchItemTitle}>{item.title}</Text>
+                    <Text style={styles.searchItemType}>{item.type}</Text>
+                </View>
+            </TouchableOpacity>
+        );
+    };
 
     return (
         <KeyboardAvoidingView 
@@ -113,7 +141,9 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
             <View style={[
                 styles.container, 
                 isExpanded && styles.expandedContainer,
-                isExpanded && { height: Dimensions.get('window').height - keyboardHeight }
+                isExpanded && { 
+                    height: Dimensions.get('window').height - keyboardHeight - 70
+                }
             ]}>
                 <View style={styles.searchBar}>
                     <TouchableOpacity onPress={isExpanded ? handleCollapse : undefined}>
@@ -135,7 +165,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
                         autoFocus={isExpanded}
                     />
 
-                    <TouchableOpacity onPress={searchText !== '' ? () => setSearchText('') : handleSearch}>
+                    <TouchableOpacity onPress={searchText !== '' ? handleClearSearch : handleSearch}>
                         {searchText !== '' ? (
                             <MaterialIcons name="close" size={24} color="black" style={styles.icon} />
                         ) : (
@@ -146,9 +176,63 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
 
                 {isExpanded && (
                     <View style={styles.recentSearchesPanel}>
-                        <Text style={styles.panelTitle}>Recent Searches</Text>
+                        {showResults && (
+                            <View style={styles.categoryButtons}>
+                                <TouchableOpacity 
+                                    style={[
+                                        styles.categoryButton,
+                                        activeCategory === 'albums' && styles.activeCategoryButton
+                                    ]}
+                                    onPress={() => setActiveCategory('albums')}
+                                >
+                                    <Text style={[
+                                        styles.categoryButtonText,
+                                        activeCategory === 'albums' && styles.activeCategoryButtonText
+                                    ]}>Albums</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={[
+                                        styles.categoryButton,
+                                        activeCategory === 'artists' && styles.activeCategoryButton
+                                    ]}
+                                    onPress={() => setActiveCategory('artists')}
+                                >
+                                    <Text style={[
+                                        styles.categoryButtonText,
+                                        activeCategory === 'artists' && styles.activeCategoryButtonText
+                                    ]}>Artists</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={[
+                                        styles.categoryButton,
+                                        activeCategory === 'tracks' && styles.activeCategoryButton
+                                    ]}
+                                    onPress={() => setActiveCategory('tracks')}
+                                >
+                                    <Text style={[
+                                        styles.categoryButtonText,
+                                        activeCategory === 'tracks' && styles.activeCategoryButtonText
+                                    ]}>Tracks</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={[
+                                        styles.categoryButton,
+                                        activeCategory === 'profiles' && styles.activeCategoryButton
+                                    ]}
+                                    onPress={() => setActiveCategory('profiles')}
+                                >
+                                    <Text style={[
+                                        styles.categoryButtonText,
+                                        activeCategory === 'profiles' && styles.activeCategoryButtonText
+                                    ]}>Profiles</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                        <Text style={styles.panelTitle}>
+                            {showResults ? 'Results' : 'Recent Searches'}
+                        </Text>
                         <FlatList
-                            data={recentSearches}
+                            data={showResults ? searchResults[activeCategory] : recentSearches}
                             keyExtractor={(item) => item.id.toString()}
                             renderItem={renderSearchItem}
                             keyboardShouldPersistTaps="handled"
@@ -163,6 +247,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
 const styles = StyleSheet.create({
     keyboardAvoidingView: {
         width: '100%',
+        height: '100%',
     },
     container: {
         width: width * 0.95,
@@ -174,6 +259,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 5,
         elevation: 2,
+        maxHeight: '100%',
     },
     expandedContainer: {
         width: '100%',
@@ -183,6 +269,7 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 20,
         borderBottomLeftRadius: 0,
         borderBottomRightRadius: 0,
+        maxHeight: Dimensions.get('window').height - 215
     },
     searchBar: {
         flexDirection: 'row',
@@ -210,6 +297,7 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingHorizontal: 10,
         paddingVertical: 5,
+        maxHeight: '100%',
     },
     panelTitle: {
         fontSize: 14,
@@ -242,6 +330,29 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#666',
         marginTop: 2,
+    },
+    categoryButtons: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: 10,
+        paddingHorizontal: 5,
+    },
+    categoryButton: {
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 15,
+        backgroundColor: '#eee',
+        marginHorizontal: 4,
+    },
+    activeCategoryButton: {
+        backgroundColor: '#000',
+    },
+    categoryButtonText: {
+        fontSize: 12,
+        color: '#666',
+    },
+    activeCategoryButtonText: {
+        color: '#fff',
     },
 });
 
