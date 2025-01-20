@@ -124,10 +124,11 @@ export const registerUser = async (userData: RegisterData): Promise<RegisterResp
 };
 
 export interface SearchItem {
-  id: string;
+  uri: string;
   title: string;
   image: string;
   type: 'Album' | 'Track' | 'Artist' | 'Profile';
+  id: string;
 }
 
 interface SearchResponse {
@@ -158,38 +159,112 @@ export const search = async (query: string): Promise<SearchResults> => {
         });
         
         const data: SearchResponse = response.data;
+      
         
         return {
             profiles: data.profiles?.map(profile => ({
-                id: profile.id.toString(),
-                title: `${profile.first_name} ${profile.last_name}`,
+                uri: profile.id.toString(),
+                title: `${profile.username}`,
                 image: profile.display_picture,
-                type: 'Profile'
+                type: 'Profile',
+                id: " "
             })) || [],
 
             albums: data.albums?.map(album => ({
-                id: album.id,
+                uri: album.uri,
                 title: album.name,
                 image: album.images[0]?.url || '',
-                type: 'Album'
+                type: 'Album',
+                id: " "
             })) || [],
 
             artists: data.artists?.map(artist => ({
-                id: artist.id,
+                uri: artist.uri,
                 title: artist.name,
                 image: artist.images[0]?.url || '',
-                type: 'Artist'
+                type: 'Artist',
+                id: " "
             })) || [],
 
             tracks: data.tracks?.map(track => ({
-                id: track.id,
+                uri: track.uri,
                 title: track.name,
                 image: track.album.images[0]?.url || '',
-                type: 'Track'
+                type: 'Track',
+                id: " "
             })) || []
         };
     } catch (error: any) {
         console.error('Search request failed:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status
+        });
+        throw error;
+    }
+};
+
+interface AddSearchParams {
+    content_type: 'Album' | 'Track' | 'Artist' | 'Profile';
+    content_id: string;
+}
+
+/**
+ * Add a search item to user's recent searches
+ * @param type The type of content (Album, Track, Artist, Profile)
+ * @param id The content's unique identifier
+ * @returns Promise with the response data
+ */
+export const addSearch = async (type: AddSearchParams['content_type'], id: string) => {
+    try {
+        const response = await api.get('/search/add/', {
+            params: {
+                content_type: type,
+                content_id: id
+            }
+        });
+        return response.data;
+    } catch (error: any) {
+        console.error('Failed to add search:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status
+        });
+        throw error;
+    }
+};
+
+interface ReviewParams {
+    content_type: 'Album' | 'Track' | 'Artist';
+    content_id: string;
+    rating: number;
+    review_text: string;
+}
+
+/**
+ * Submit a review for an album, track, or artist
+ * @param type The type of content being reviewed
+ * @param id The content's unique identifier
+ * @param rating Rating value (typically 1-5)
+ * @param text Review text content
+ * @returns Promise with the response data
+ */
+export const review = async (
+    type: ReviewParams['content_type'],
+    id: string,
+    rating: number,
+    text: string
+) => {
+    try {
+        const response = await api.post('/reviews/', {
+            content_type: type,
+            content_id: id,
+            rating: rating,
+            review_text: text
+        });
+        return response.data;
+    } catch (error: any) {
+        console.error('Failed to submit review:', {
             message: error.message,
             response: error.response?.data,
             status: error.response?.status

@@ -14,17 +14,17 @@ import {
     KeyboardEvent,
 } from 'react-native';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
-import { fetchRecentSearches, search, SearchItem } from '../services/api';
+import { fetchRecentSearches, search, SearchItem, addSearch } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
 interface SearchBarProps {
-    // removed onSearch prop
+    onSelection: (type: 'Album' | 'Track' | 'Artist' | 'Profile', id: string) => void;
 }
 
 type SearchCategory = 'albums' | 'artists' | 'profiles' | 'tracks';
 
-const SearchBar: React.FC<SearchBarProps> = () => {  // removed onSearch from props
+const SearchBar: React.FC<SearchBarProps> = ({ onSelection }) => {
     const [searchText, setSearchText] = useState<string>('');
     const [isExpanded, setIsExpanded] = useState<boolean>(false);
     const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
@@ -68,7 +68,14 @@ const SearchBar: React.FC<SearchBarProps> = () => {  // removed onSearch from pr
         const loadRecentSearches = async () => {
             try {
                 const searches = await fetchRecentSearches();
-                setRecentSearches(searches);
+                // Map the results to rename 'content-id' to 'id'
+                const formattedSearches = searches.map((searchItem: any) => ({
+                    ...searchItem,
+                    id: searchItem['object_id'] || 'unknown',  // Keep 'object_uri' as 'id'
+                    uri: searchItem['object_uri'] || 'unknown',  // Keep 'object_uri' as 'id'
+                }));
+                console.log('Formatted searches:', formattedSearches);
+                setRecentSearches(formattedSearches);
             } catch (error) {
                 console.error('Failed to load recent searches:', error);
             }
@@ -114,15 +121,26 @@ const SearchBar: React.FC<SearchBarProps> = () => {  // removed onSearch from pr
         setShowResults(false);
     };
 
+    const handleSearchItemPress = async (item: SearchItem) => {
+        try {
+            const response = await addSearch(item.type, item.uri);
+            console.log('Add Search Response:', response);
+
+            onSelection(item.type, response.id);
+            console.log('Added to recent searches:', item);
+        } catch (error) {
+            console.error('Failed to add to recent searches:', error);
+        }
+    };
+
     const renderSearchItem = ({ item }: { item: SearchItem }) => {
         return (
-            <TouchableOpacity style={styles.recentSearchItem}>
+            <TouchableOpacity 
+                style={styles.recentSearchItem}
+                onPress={() => handleSearchItemPress(item)}
+            >
                 <Image 
-                    source={{ 
-                        uri: item.image.startsWith('http') 
-                            ? item.image 
-                            : `http://192.168.1.209:8000${item.image}`
-                    }} 
+                    source={{ uri: item.image }} 
                     style={styles.searchItemImage} 
                 />
                 <View style={styles.searchItemContent}>
@@ -233,7 +251,7 @@ const SearchBar: React.FC<SearchBarProps> = () => {  // removed onSearch from pr
                         </Text>
                         <FlatList
                             data={showResults ? searchResults[activeCategory] : recentSearches}
-                            keyExtractor={(item) => item.id.toString()}
+                            keyExtractor={(item) => item.uri.toString()}
                             renderItem={renderSearchItem}
                             keyboardShouldPersistTaps="handled"
                         />

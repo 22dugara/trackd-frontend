@@ -5,14 +5,22 @@ import { useUser } from '../context/userContext';
 import TopNavBar from '../components/TopNavBar';
 import BottomNavBar from '../components/BottomNavBar';
 import Background from '../components/Background';
-import SearchBar from '../components/Search'; // Import the SearchBar component
+import SearchBar from '../components/Search';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../navigation';
 
-const DiscoverScreen = () => {
-    const { username } = useUser();
+// Define the navigation prop type
+type SearchScreenNavigationProp = StackNavigationProp<RootStackParamList, 'ReviewSearch'>;
+
+
+const ReviewSearchScreen = () => {
+    const navigation = useNavigation<SearchScreenNavigationProp>();
 
     const handleSearchSelection = (type: 'Album' | 'Track' | 'Artist' | 'Profile', id: string) => {
-        // Dummy function for now
-        console.log('Selected:', type, id);
+        if (type !== 'Profile') {
+            navigation.navigate('Review', { contentType: type, contentId: id });
+        }
     };
 
     return (
@@ -48,4 +56,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default DiscoverScreen;
+export default ReviewSearchScreen;

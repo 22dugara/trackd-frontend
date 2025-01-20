@@ -28,7 +28,7 @@ const BottomNavBar = () => {
             <View style={styles.addButtonWrapper}>
                 <TouchableOpacity
                     style={styles.addButton}
-                    onPress={() => navigation.navigate('Review')}
+                    onPress={() => navigation.navigate('ReviewSearch')}
                 >
                     <Ionicons name="add" size={28} color="white" />
                 </TouchableOpacity>
